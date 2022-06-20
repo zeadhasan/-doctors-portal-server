@@ -49,7 +49,7 @@ async function run() {
 
 
         app.get('/available', async (req, res) => {
-            const date = req.query.date || 'Jun 19, 2022';
+            const date = req.query.date;
 
             //step 1: get al service
             const services = await serviceCollection.find().toArray();
@@ -60,10 +60,10 @@ async function run() {
 
             //step 3: for each service, find all booking for that service
             services.forEach(service => {
-                const serviceBookings = bookings.filter(b => b.treatment === service.name);
-                const booked = serviceBookings.map(s => s.slot);
-                const available = service.slots.filter(s => !booked.includes(s));
-                service.available = available;
+                const serviceBookings = bookings.filter(book => book.treatment === service.name);
+                const bookedSlots = serviceBookings.map(book => book.slot);
+                const available = service.slots.filter(slot => !bookedSlots.includes(slot));
+                service.slots = available;
             })
 
 
