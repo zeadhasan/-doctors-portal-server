@@ -3,6 +3,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -18,12 +19,26 @@ async function run() {
         await client.connect();
         const serviceCollection = client.db('doctors_portal').collection('services');
         const bookingCollection = client.db('doctors_portal').collection('bookings');
+        const userCollection = client.db('doctors_portal').collection('users');
 
         app.get('/service', async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services);
+        });
+
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            }
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+            res.send({ result, token });
         });
 
 
@@ -33,6 +48,7 @@ async function run() {
         * app.get("/booking/:id") // get a specific booking
         * app.post("/booking") // add new booking
         * app.patch("/booking/:id") //update specific booking
+        * app.put("/booking/:id") //update specific booking
         * app.delete("/booking/:id") // delete specific one booking
        */
 
@@ -57,14 +73,11 @@ async function run() {
 
         app.get('/available', async (req, res) => {
             const date = req.query.date;
-
             //step 1: get al service
             const services = await serviceCollection.find().toArray();
-
             //step 2: get the booking of that day 
             const query = { date: date };
             const bookings = await bookingCollection.find(query).toArray();
-
             //step 3: for each service, find all booking for that service
             services.forEach(service => {
                 const serviceBookings = bookings.filter(book => book.treatment === service.name);
@@ -72,10 +85,7 @@ async function run() {
                 const available = service.slots.filter(slot => !bookedSlots.includes(slot));
                 service.slots = available;
             })
-
-
             res.send(services);
-
         })
 
 
