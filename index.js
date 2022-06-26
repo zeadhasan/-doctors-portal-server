@@ -159,10 +159,8 @@ async function run() {
                 $set: {
                     paid: true,
                     transactionId: payment.transactionId,
-
                 }
             }
-
             const result = await paymentCollection.insertOne(payment);
             const updateBooking = await bookingCollection.updateOne(filter, updateDoc);
             res.send(updateDoc);
